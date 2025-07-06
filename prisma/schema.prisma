@@ -1,0 +1,185 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User Model untuk Booking User
+model User {
+  userId      String   @id @default(uuid())
+  googleId    String?  @unique
+  username    String   @unique
+  email       String   @unique
+  phone       String?
+  profilePic  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Booking relations
+  bookings    Booking[]
+  reviews     Review[]
+  
+  @@map("users")
+}
+
+// Partner Model untuk pemilik kontrakan
+model Partner {
+  partnerId     String   @id @default(uuid())
+  googleId      String?  @unique
+  username      String   @unique
+  email         String   @unique
+  phone         String
+  profilePic    String?
+  businessName  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Partner specific fields
+  isVerified    Boolean  @default(false)
+  subscriptionStatus String @default("inactive") // active, inactive, expired
+  paidAmount    Float    @default(0)
+  maxRooms      Int      @default(0) // 10 rooms per 50k payment
+  
+  // Relations
+  rentals       Rental[]
+  payments      PartnerPayment[]
+  
+  @@map("partners")
+}
+
+// Model untuk Kontrakan/Rental
+model Rental {
+  rentalId      String   @id @default(uuid())
+  partnerId     String
+  name          String
+  description   String?
+  address       String
+  lat           Float    // Latitude (wajib)
+  lng           Float    // Longitude (wajib)
+  price         Float
+  originalPrice Float?
+  
+  // Rental details
+  roomCount     Int      @default(1)
+  facilities    String[] // ["WiFi", "AC", "Kitchen", etc]
+  images        String[] // Array of image URLs
+  mainImage     String?  // Main display image
+  
+  // Status and metrics
+  isAvailable   Boolean  @default(true)
+  isActive      Boolean  @default(true)
+  rating        Float    @default(0)
+  reviewCount   Int      @default(0)
+  bookingCount  Int      @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  partner       Partner  @relation(fields: [partnerId], references: [partnerId], onDelete: Cascade)
+  bookings      Booking[]
+  reviews       Review[]
+  
+  @@map("rentals")
+}
+
+// Model untuk Booking
+model Booking {
+  bookingId     String   @id @default(uuid())
+  userId        String
+  rentalId      String
+  
+  // Booking details
+  checkIn       DateTime
+  checkOut      DateTime
+  totalDays     Int
+  totalAmount   Float
+  
+  // Booking status
+  status        String   @default("pending") // pending, confirmed, cancelled, completed
+  paymentStatus String   @default("unpaid")  // unpaid, paid, refunded
+  
+  // Contact info
+  guestName     String
+  guestPhone    String
+  guestEmail    String
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  user          User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  rental        Rental   @relation(fields: [rentalId], references: [rentalId], onDelete: Cascade)
+  payment       Payment?
+  
+  @@map("bookings")
+}
+
+// Model untuk Payment booking
+model Payment {
+  paymentId     String   @id @default(uuid())
+  bookingId     String   @unique
+  amount        Float
+  method        String   // "credit_card", "bank_transfer", "ewallet", etc
+  status        String   @default("pending") // pending, success, failed
+  transactionId String?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  booking       Booking  @relation(fields: [bookingId], references: [bookingId], onDelete: Cascade)
+  
+  @@map("payments")
+}
+
+// Model untuk Partner Payment (subscription 50k/10 rooms)
+model PartnerPayment {
+  paymentId     String   @id @default(uuid())
+  partnerId     String
+  amount        Float    // 50000 per 10 rooms
+  roomsAllowed  Int      // 10 rooms per payment
+  method        String
+  status        String   @default("pending")
+  transactionId String?
+  
+  // Subscription period
+  validFrom     DateTime
+  validUntil    DateTime
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  partner       Partner  @relation(fields: [partnerId], references: [partnerId], onDelete: Cascade)
+  
+  @@map("partner_payments")
+}
+
+// Model untuk Review
+model Review {
+  reviewId      String   @id @default(uuid())
+  userId        String
+  rentalId      String
+  rating        Int      // 1-5
+  comment       String?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  user          User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  rental        Rental   @relation(fields: [rentalId], references: [rentalId], onDelete: Cascade)
+  
+  @@unique([userId, rentalId]) // One review per user per rental
+  @@map("reviews")
+}
