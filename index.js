@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://lost-media.vercel.app",
+  "https://fe-ngekos.vercel.app",
 ];
 
 app.use(
