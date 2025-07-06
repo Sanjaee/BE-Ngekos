@@ -5,6 +5,8 @@ const cors = require("cors");
 const session = require("express-session");
 const passport = require("./src/config/passportConfig");
 const authRoutes = require("./src/routes/authRoutes");
+const paymentRoutes = require("./src/routes/paymentRoutes");
+const rentalRoutes = require("./src/routes/rentalRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -55,6 +57,8 @@ app.use(passport.session());
 
 // Routes
 app.use("/auth", authRoutes);
+app.use("/payment", paymentRoutes);
+app.use("/rental", rentalRoutes);
 
 // Health check route
 app.get("/health", (req, res) => {

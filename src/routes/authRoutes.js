@@ -22,6 +22,15 @@ const isAuthenticated = (req, res, next) => {
 // Handle NextAuth Google sign-in
 router.post("/signin-google", authController.signinGoogle);
 
+// Handle NextAuth Google sign-in for Partners
+router.post("/signin-google-partner", authController.signinGooglePartner);
+
+// Partner registration
+router.post("/register-partner", authController.registerPartner);
+
+// Update partner payment
+router.post("/update-partner-payment", authController.updatePartnerPayment);
+
 // Create JWT session for NextAuth integration
 router.post("/create-session", authController.createSession);
 
