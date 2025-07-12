@@ -880,12 +880,22 @@ const authController = {
       });
 
       if (existingPartner) {
-        // Update existing partner with Google ID
+        // Check if partner has completed registration (has phone and username)
+        const hasCompletedRegistration =
+          existingPartner.phone &&
+          existingPartner.phone.trim() !== "" &&
+          existingPartner.username &&
+          existingPartner.username.trim() !== "";
+
+        // Update existing partner with Google ID and set isVerified if registration is complete
         const updatedPartner = await prisma.partner.update({
           where: { partnerId: existingPartner.partnerId },
           data: {
             googleId: googleId,
             profilePic: image || existingPartner.profilePic,
+            isVerified: hasCompletedRegistration
+              ? true
+              : existingPartner.isVerified,
           },
           select: {
             partnerId: true,
@@ -1018,6 +1028,7 @@ const authController = {
           username: username,
           phone: phone,
           businessName: businessName || null,
+          isVerified: true, // Set to true when registration is complete
         },
         select: {
           partnerId: true,
@@ -1056,92 +1067,6 @@ const authController = {
       });
     } catch (error) {
       console.error("Error in register-partner:", error);
-      res.status(500).json({
-        success: false,
-        error: "Internal server error",
-        details: error.message,
-      });
-    }
-  },
-
-  // Update partner payment (simulate payment processing)
-  updatePartnerPayment: async (req, res) => {
-    try {
-      const { partnerId, amount, roomsAllowed } = req.body;
-
-      if (!partnerId || !amount || !roomsAllowed) {
-        return res.status(400).json({
-          success: false,
-          error: "Missing required fields",
-        });
-      }
-
-      // Update partner payment and room limits
-      const updatedPartner = await prisma.partner.update({
-        where: { partnerId: partnerId },
-        data: {
-          paidAmount: {
-            increment: amount,
-          },
-          maxRooms: {
-            increment: roomsAllowed,
-          },
-          subscriptionStatus: "active",
-        },
-        select: {
-          partnerId: true,
-          googleId: true,
-          username: true,
-          email: true,
-          phone: true,
-          profilePic: true,
-          businessName: true,
-          isVerified: true,
-          subscriptionStatus: true,
-          paidAmount: true,
-          maxRooms: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
-
-      // Create payment record
-      await prisma.partnerPayment.create({
-        data: {
-          partnerId: partnerId,
-          amount: amount,
-          roomsAllowed: roomsAllowed,
-          method: "simulated_payment",
-          status: "success",
-          transactionId: `TXN_${Date.now()}_${Math.random()
-            .toString(36)
-            .substr(2, 9)}`,
-          validFrom: new Date(),
-          validUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
-        },
-      });
-
-      res.json({
-        success: true,
-        partner: {
-          partnerId: updatedPartner.partnerId,
-          googleId: updatedPartner.googleId,
-          username: updatedPartner.username,
-          email: updatedPartner.email,
-          phone: updatedPartner.phone,
-          profilePic: updatedPartner.profilePic,
-          businessName: updatedPartner.businessName,
-          isVerified: updatedPartner.isVerified,
-          subscriptionStatus: updatedPartner.subscriptionStatus,
-          paidAmount: updatedPartner.paidAmount,
-          maxRooms: updatedPartner.maxRooms,
-          createdAt: updatedPartner.createdAt,
-          updatedAt: updatedPartner.updatedAt,
-        },
-        message: "Payment processed successfully",
-      });
-    } catch (error) {
-      console.error("Error in update-partner-payment:", error);
       res.status(500).json({
         success: false,
         error: "Internal server error",

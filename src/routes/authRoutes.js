@@ -28,9 +28,6 @@ router.post("/signin-google-partner", authController.signinGooglePartner);
 // Partner registration
 router.post("/register-partner", authController.registerPartner);
 
-// Update partner payment
-router.post("/update-partner-payment", authController.updatePartnerPayment);
-
 // Create JWT session for NextAuth integration
 router.post("/create-session", authController.createSession);
 
